@@ -22,14 +22,16 @@ const nextConfig = {
     contentSecurityPolicy:
       "default-src 'self'; img-src 'self' data: https: blob:; media-src 'none'; script-src 'none'; sandbox;",
 
-    // تصاویر خارجی
+    // IMPORTANT: All hostnames listed here must be publicly accessible from the internet.
+    // Vercel's build and image optimization services need to be able to reach these domains.
+    // Local hostnames (like 'localhost') or private IPs will cause the build to fail.
     remotePatterns: [
       { protocol: "https", hostname: "picsum.photos", pathname: "/**" },
       { protocol: "https", hostname: "shata20.ir", pathname: "/**" },
       { protocol: "http", hostname: "185.173.104.229", pathname: "/**" },
       { protocol: "https", hostname: "loremflickr.com", pathname: "/**" },
       { protocol: "https", hostname: "api.shata20.ir", pathname: "/**" },
-      { protocol: "https", hostname: "example.com", pathname: "/**" },
+      // { protocol: "https", hostname: "example.com", pathname: "/**" }, // Removed as it is an unnecessary placeholder
     ],
   },
 
