@@ -1,0 +1,68 @@
+'use client';
+import Slider from '@/components/base/slider';
+import Image from 'next/image';
+import React from 'react';
+import { PageLevelLocalization } from '@/constants/localization';
+import Link from 'next/link';
+import { ProductCard } from '@/components/base/product-card';
+import { useCategoriesBuySlug } from '@/components/layout/components/header/hooks';
+import SkeletonAmazing from '../../amazing-slider/skeleton-amazing';
+
+function AccessoriesSlider() {
+  const { home: titleSlider } = PageLevelLocalization;
+  const { data, isPending } = useCategoriesBuySlug('accessories');
+
+  return (
+    <Slider
+      classTitleSlider="w-full items-center "
+      titleSlider={
+        <div className="flex items-center justify-between md:pl-40">
+          <h3 className="font-Bold text-lg text-gray-800 pr-4">
+            {titleSlider.slider.accessories}
+          </h3>
+          <Link
+            href="/pcat/fashion"
+            className="flex  text-emerald-500 gap-2 p-2 transition-all  border border-transparent   items-center justify-center hover:border-gray-100 rounded-md"
+          >
+            <h3 className="font-semibold text-base text-center ">
+              {titleSlider.amazingSlider.action}
+            </h3>
+            <Image
+              width={24}
+              height={24}
+              src="/svg/arrow-left-green.svg"
+              alt="amazing"
+              className=""
+            />
+          </Link>
+        </div>
+      }
+      DataArray={data?.products}
+      RenderItem={ProductCard}
+      classNameCard="p-2 flex flex-col gap-2 justify-between"
+      classSwiperSlide="bg-white border border-gray-100  box-border hover:shadow-primary my-2 w-full md:max-w-fit rounded-md md:min-h-[380px]"
+      classMainSlider="  justify-between flex flex-col mt-16 pr-4 md:pr-40 md:w-full"
+      classCounterSlider=" w-full  rounded-l-md"
+      breakpoints={{
+        1024: {
+          slidesPerView: 6,
+          spaceBetween: 24,
+        },
+        768: {
+          slidesPerView: 2.5,
+          spaceBetween: 24,
+        },
+        375: {
+          slidesPerView: 1.5,
+          spaceBetween: 24,
+        },
+      }}
+      fade={true}
+      classNameFade="w-80 h-full top-0 md:z-20  left-0 absolute  md:bg-fade-gradient"
+      SkeletonLoader={isPending && <SkeletonAmazing />}
+      withLink={true}
+    />
+  );
+}
+
+export default AccessoriesSlider;

@@ -1,0 +1,21 @@
+export const routes = {
+  home: "/",
+  login: "/login",
+  about: "/about",
+  blog: "/blog",
+  shop: "/shop",
+  contact: "/contact",
+  cart: "/checkout/cart",
+  installmentPlan: "/installment-plan",
+  profile: {
+    dashboard: "/profile-user",
+    installment: "/profile-user/installment",
+    orders: "/profile-user/orders",
+    addresses: "/profile-user/addresses",
+    myListProducts: "/profile-user/my-list-products",
+    notifications: "/profile-user/notifications",
+    comments: "/profile-user/comments",
+    support: "/profile-user/support",
+    userInfo: "/profile-user/user-info",
+  },
+};

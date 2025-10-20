@@ -1,0 +1,1446 @@
+/**
+ * PRODUCT COMPARISON SYSTEM
+ *
+ * FEATURES IMPLEMENTED:
+ * ✅ Default product from single page via URL parameter (?product=ID)
+ * ✅ Real-time search integration with project's search API
+ * ✅ Features extraction and display in comparison table
+ * ✅ Responsive design for mobile and desktop
+ * ✅ API-ready structure for easy backend integration
+ *
+ * HOW TO USE:
+ * 1. From single product page: Click compare icon → navigates to /compare?product=123
+ * 2. Add products via search: Real search API integration with 3+ character requirement
+ * 3. Features display: Automatically extracts and shows all product features
+ *
+ * API INTEGRATION READY:
+ * 1. Replace fetchProductByIdAPI() with real API endpoint
+ * 2. Replace useSearchResults() with real search API (already integrated)
+ * 3. Update createProductFromAPI() to match your API response structure
+ * 4. Features will automatically populate from product.productProperties
+ *
+ * TODO FOR API INTEGRATION:
+ * - Set NEXT_PUBLIC_API_BASE_URL in environment variables
+ * - Update fetchProductByIdAPI function (line ~30)
+ * - Uncomment real API calls in useProductById hook (line ~507)
+ * - Test with real product IDs
+ */
+
+"use client";
+import React, { useState, useRef, useEffect } from "react";
+import Image from "next/image";
+import Button from "@/components/base/button";
+import ManageModal, { ManageModalRef } from "@/components/base/modal";
+import { ProductType } from "@/components/base/product-card/type";
+import ProductList from "@/components/app/products/components";
+import clsxm from "@/utils/clsxm";
+import { useSearchResults } from "@/components/app/search-box/hooks";
+import { calculateFinalPrice } from "@/utils/priceUtils";
+import { getThumbnailImageUrl } from "@/utils/get-thumbnail-image-url";
+import { ProductCard } from "@/components/base/product-card";
+
+// API Integration Helper Functions - Ready for real API replacement
+const createProductFromAPI = (apiProduct: any): CompareProduct => {
+  // TODO: Replace with real API response structure
+  // This function converts API response to CompareProduct format
+  return {
+    id: apiProduct.id,
+    title: apiProduct.title || apiProduct.name,
+    price: apiProduct.price || apiProduct.finalPrice,
+    originalPrice: apiProduct.originalPrice || apiProduct.regularPrice,
+    discount: apiProduct.discount,
+    rating: apiProduct.rating || apiProduct.averageRating,
+    imageUrl:
+      apiProduct.imageUrl || apiProduct.thumbnail || "/images/placeholder.png",
+    features: apiProduct.features || apiProduct.specifications || {},
+  };
+};
+
+const fetchProductByIdAPI = async (
+  productId: string
+): Promise<ProductType | null> => {
+  // TODO: Replace with real API endpoint
+  try {
+    // const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/products/${productId}`);
+    // if (!response.ok) throw new Error('Product not found');
+    // const productData = await response.json();
+    // return productData;
+
+    // Mock implementation for now
+    return null;
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    return null;
+  }
+};
+
+// Helper function to convert ProductType to CompareProduct
+const convertProductTypeToCompareProduct = (
+  product: ProductType
+): CompareProduct => {
+  const priceData = calculateFinalPrice(product?.productVariants ?? [], false);
+  const compareProduct: CompareProduct = {
+    id: product.id,
+    title: product.title,
+    price: priceData.finalPrice,
+    originalPrice: priceData.initialPrice,
+    discount: product?.productVariants?.[0]?.discount
+      ? parseFloat(product.productVariants[0].discount as string)
+      : undefined,
+    rating: undefined,
+    imageUrl:
+      getThumbnailImageUrl(product?.productImages) || "/images/placeholder.png",
+    features: {},
+  };
+
+  // Extract features from product properties
+  if (product.productProperties) {
+    product.productProperties.forEach((prop) => {
+      if (prop.title && prop.description) {
+        compareProduct.features[prop.title] = prop.description;
+      }
+    });
+  }
+
+  return compareProduct;
+};
+
+// Interface for comparison products
+interface CompareProduct {
+  id: number;
+  title: string;
+  name?: string;
+  price?: number;
+  originalPrice?: number;
+  discount?: number;
+  rating?: number;
+  imageUrl?: string;
+  features: Record<string, string>;
+}
+
+// Mock product data - replace with real data when API is ready
+const mockProducts: CompareProduct[] = [
+  {
+    id: 1,
+    title:
+      "گوشی موبایل سامسونگ مدل Galaxy A07 ظرفیت 128 گیگابایت رم 4 گیگابایت",
+    name: "گوشی موبایل سامسونگ مدل Galaxy A07 ظرفیت 128 گیگابایت رم 4 گیگابایت",
+    price: 15199000,
+    originalPrice: 16500000,
+    discount: 8,
+    rating: 4.2,
+    imageUrl: "/images/product-sample.jpg",
+    features: {
+      "نوع پردازنده - CPU": "Qualcomm SM8350 Snapdragon 888 5G (5 nm)",
+      "تعداد هسته پردازشگر": "هشت هسته",
+      "پردازنده گرافیکی - GPU": "Adreno 660",
+      "تعداد سیم کارت": "دو سیم کارت (نانو سیم – همزمان فعال)",
+      "ظرفیت باتری": "4500 میلی آمپر ساعت",
+      وزن: "173 گرم",
+      ابعاد: "159.9 × 75.1 × 8.2 میلی متر",
+      "جنس بدنه": "شیشه و آلومینیوم",
+      رنگ: "مشکی، آبی، نقره ای",
+      "سیستم عامل": "Android 13",
+      "نوع صفحه نمایش": "Super AMOLED",
+      "اندازه صفحه نمایش": "6.7 اینچ",
+      رزولوشن: "2400 × 1080 پیکسل",
+    },
+  },
+  {
+    id: 2,
+    title: "گوشی موبایل اپل مدل iPhone 13 Pro ظرفیت 256 گیگابایت رم 6 گیگابایت",
+    name: "گوشی موبایل اپل مدل iPhone 13 Pro ظرفیت 256 گیگابایت رم 6 گیگابایت",
+    price: 76999000,
+    originalPrice: 89000000,
+    discount: 13,
+    rating: 4.8,
+    imageUrl: "/images/product-sample2.jpg",
+    features: {
+      "نوع پردازنده - CPU": "Apple A15 Bionic (5 نانومتر)",
+      "تعداد هسته پردازشگر": "شش هسته",
+      "پردازنده گرافیکی - GPU": "Apple GPU (5 هسته ای)",
+      "تعداد سیم کارت": "دو سیم کارت",
+      "ظرفیت باتری": "3095 میلی آمپر ساعت",
+      وزن: "204 گرم",
+      ابعاد: "146.7 × 71.5 × 7.65 میلی متر",
+      "جنس بدنه": "شیشه و استیل ضد زنگ",
+      رنگ: "طلایی، نقره ای، آبی، مشکی",
+      "سیستم عامل": "iOS 15",
+      "نوع صفحه نمایش": "Super Retina XDR",
+      "اندازه صفحه نمایش": "6.1 اینچ",
+      رزولوشن: "2532 × 1170 پیکسل",
+    },
+  },
+  {
+    id: 3,
+    title: "گوشی موبایل شیائومی مدل Mi 11i 5G ظرفیت 256 گیگابایت رم 8 گیگابایت",
+    name: "گوشی موبایل شیائومی مدل Mi 11i 5G ظرفیت 256 گیگابایت رم 8 گیگابایت",
+    price: 28500000,
+    originalPrice: 32000000,
+    discount: 11,
+    rating: 4.5,
+    imageUrl: "/images/product-sample3.jpg",
+    features: {
+      "نوع پردازنده - CPU": "Qualcomm Snapdragon 888 (5 nm)",
+      "تعداد هسته پردازشگر": "هشت هسته",
+      "پردازنده گرافیکی - GPU": "Adreno 660",
+      "تعداد سیم کارت": "دو سیم کارت (نانو سیم)",
+      "ظرفیت باتری": "4520 میلی آمپر ساعت",
+      وزن: "196 گرم",
+      ابعاد: "163.7 × 76.4 × 7.8 میلی متر",
+      "جنس بدنه": "شیشه و آلومینیوم",
+      رنگ: "مشکی، آبی، سفید",
+      "سیستم عامل": "MIUI 13 (Android 12)",
+      "نوع صفحه نمایش": "AMOLED",
+      "اندازه صفحه نمایش": "6.67 اینچ",
+      رزولوشن: "2400 × 1080 پیکسل",
+    },
+  },
+  {
+    id: 4,
+    title: "گوشی موبایل هوآوی مدل P50 Pro ظرفیت 256 گیگابایت رم 8 گیگابایت",
+    name: "گوشی موبایل هوآوی مدل P50 Pro ظرفیت 256 گیگابایت رم 8 گیگابایت",
+    price: 45000000,
+    originalPrice: 52000000,
+    discount: 13,
+    rating: 4.3,
+    imageUrl: "/images/product-sample4.jpg",
+    features: {
+      "نوع پردازنده - CPU": "Kirin 9000 (5 nm)",
+      "تعداد هسته پردازشگر": "هشت هسته",
+      "پردازنده گرافیکی - GPU": "Mali-G78 MP24",
+      "تعداد سیم کارت": "دو سیم کارت (نانو سیم)",
+      "ظرفیت باتری": "4360 میلی آمپر ساعت",
+      وزن: "195 گرم",
+      ابعاد: "158.8 × 72.8 × 8.5 میلی متر",
+      "جنس بدنه": "شیشه و آلومینیوم",
+      رنگ: "طلایی، مشکی، نقره ای",
+      "سیستم عامل": "HarmonyOS 2.0",
+      "نوع صفحه نمایش": "OLED",
+      "اندازه صفحه نمایش": "6.6 اینچ",
+      رزولوشن: "2700 × 1228 پیکسل",
+    },
+  },
+  {
+    id: 5,
+    title: "گوشی موبایل نوکیا مدل G50 ظرفیت 128 گیگابایت رم 4 گیگابایت",
+    name: "گوشی موبایل نوکیا مدل G50 ظرفیت 128 گیگابایت رم 4 گیگابایت",
+    price: 12500000,
+    rating: 3.9,
+    imageUrl: "/images/product-sample5.jpg",
+    features: {
+      "نوع پردازنده - CPU": "Qualcomm Snapdragon 480 5G",
+      "تعداد هسته پردازشگر": "هشت هسته",
+      "پردازنده گرافیکی - GPU": "Adreno 619",
+      "تعداد سیم کارت": "دو سیم کارت (نانو سیم)",
+      "ظرفیت باتری": "5000 میلی آمپر ساعت",
+      وزن: "220 گرم",
+      ابعاد: "173.8 × 77.7 × 8.9 میلی متر",
+      "جنس بدنه": "پلاستیک",
+      رنگ: "آبی، مشکی",
+      "سیستم عامل": "Android 11",
+      "نوع صفحه نمایش": "IPS LCD",
+      "اندازه صفحه نمایش": "6.82 اینچ",
+      رزولوشن: "1560 × 720 پیکسل",
+    },
+  },
+];
+
+interface AddProductModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onAddProduct: (product: CompareProduct) => void;
+  excludeIds: number[];
+}
+
+const AddProductModal: React.FC<AddProductModalProps> = ({
+  isOpen,
+  onClose,
+  onAddProduct,
+  excludeIds,
+}) => {
+  const modalRef = useRef<ManageModalRef>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Use the project's real search functionality
+  const {
+    data: searchResults,
+    isLoading,
+    error,
+  } = useSearchResults(searchQuery);
+
+  // Filter out already added products and convert to the right format
+  const availableProducts: ProductType[] =
+    searchResults?.products?.filter(
+      (product: ProductType) => !excludeIds.includes(product.id)
+    ) || [];
+
+  const handleProductSelect = (product: ProductType) => {
+    // Use the helper function to convert ProductType to CompareProduct
+    const compareProduct = convertProductTypeToCompareProduct(product);
+
+    onAddProduct(compareProduct);
+    onClose();
+    setSearchQuery("");
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      modalRef.current?.openModal();
+    } else {
+      modalRef.current?.closeModal();
+    }
+  }, [isOpen]);
+
+  return (
+    <ManageModal
+      ref={modalRef}
+      className="fixed inset-0 z-50"
+      modalBodyClass="w-[95%] md:w-[90%] lg:w-[85%] max-w-5xl h-[85vh] md:h-[80vh] max-h-[700px] bg-white rounded-2xl shadow-2xl overflow-y-auto"
+      activeOverlay={true}
+      onClose={onClose}
+    >
+      {
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-2 rounded-lg">
+                <svg
+                  className="w-5 h-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  افزودن محصول به مقایسه
+                </h3>
+                <p className="text-gray-600 text-sm">
+                  محصول مورد نظر خود را انتخاب کنید
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <svg
+                className="w-5 h-5 text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+
+          {/* Search Box */}
+          <div className="p-4 border-b border-gray-200 flex-shrink-0">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="جستجوی محصول..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              />
+              <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                <svg
+                  className="w-5 h-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              {searchQuery.length < 3
+                ? "حداقل ۳ کاراکتر وارد کنید"
+                : isLoading
+                  ? "در حال جستجو..."
+                  : `${availableProducts.length} محصول یافت شد`}
+            </p>
+          </div>
+
+          {/* Products Grid */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {searchQuery.length < 3 ? (
+              <div className="text-center py-8">
+                <div className="relative mb-4">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto flex items-center justify-center">
+                    <svg
+                      className="w-8 h-8 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <h4 className="text-lg font-bold text-gray-600 mb-2">
+                  شروع جستجو
+                </h4>
+                <p className="text-gray-500 text-sm">
+                  حداقل ۳ کاراکتر برای شروع جستجو وارد کنید
+                </p>
+              </div>
+            ) : isLoading ? (
+              <div className="text-center py-8">
+                <div className="relative mb-4">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full mx-auto flex items-center justify-center">
+                    <svg
+                      className="w-8 h-8 text-blue-500 animate-spin"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <h4 className="text-lg font-bold text-blue-600 mb-2">
+                  در حال جستجو...
+                </h4>
+                <p className="text-blue-500 text-sm">لطفاً منتظر بمانید</p>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8">
+                <div className="relative mb-4">
+                  <div className="w-16 h-16 bg-red-100 rounded-full mx-auto flex items-center justify-center">
+                    <svg
+                      className="w-8 h-8 text-red-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <h4 className="text-lg font-bold text-red-600 mb-2">
+                  خطا در جستجو
+                </h4>
+                <p className="text-red-500 text-sm">لطفاً دوباره تلاش کنید</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {availableProducts.map((product) => {
+                  const { finalPrice, discountText, initialPrice } =
+                    calculateFinalPrice(product?.productVariants ?? [], false);
+                  const imageUrl = getThumbnailImageUrl(product?.productImages);
+
+                  return (
+                    <div
+                      key={product.id}
+                      onClick={() => handleProductSelect(product)}
+                    >
+                      <ProductCard
+                        initialPrice={initialPrice}
+                        imageSrc={
+                          imageUrl || "/images/Products/default-product.webp"
+                        }
+                        price={finalPrice}
+                        discount={discountText}
+                        name={product.title}
+                        slug={product.slug}
+                        withLink={false}
+                        description={product.short_description}
+                        classNameCard="p-3 flex flex-col gap-2 border border-gray-200 rounded-lg cursor-pointer hover:border-blue-400 hover:shadow-md transition-all duration-200 bg-white"
+                        cardImageSize="w-full h-32 sm:h-36"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {searchQuery.length >= 3 &&
+              !isLoading &&
+              !error &&
+              availableProducts.length === 0 && (
+                <div className="text-center py-8">
+                  <div className="relative mb-4">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto flex items-center justify-center">
+                      <svg
+                        className="w-8 h-8 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                  <h4 className="text-lg font-bold text-gray-600 mb-2">
+                    محصولی یافت نشد
+                  </h4>
+                  <p className="text-gray-500 text-sm">
+                    لطفاً کلمه کلیدی دیگری امتحان کنید
+                  </p>
+                </div>
+              )}
+          </div>
+        </div>
+      }
+    </ManageModal>
+  );
+};
+
+// Hook to fetch product by ID (mock implementation - ready for API)
+const useProductById = (productId?: string) => {
+  const [product, setProduct] = useState<ProductType | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!productId) return;
+
+    setIsLoading(true);
+
+    // TODO: Replace with real API call when backend is ready
+    // const fetchProduct = async () => {
+    //   try {
+    //     const apiProduct = await fetchProductByIdAPI(productId);
+    //     if (apiProduct) {
+    //       setProduct(apiProduct);
+    //     }
+    //   } catch (error) {
+    //     console.error('Error fetching product:', error);
+    //   } finally {
+    //     setIsLoading(false);
+    //   }
+    // };
+    // fetchProduct();
+
+    // MOCK IMPLEMENTATION - Replace this entire block with the above when API is ready
+    setTimeout(() => {
+      const foundProduct = mockProducts.find(
+        (p) => p.id.toString() === productId
+      );
+      if (foundProduct) {
+        // Convert CompareProduct back to ProductType structure for consistency
+        const productType: ProductType = {
+          id: foundProduct.id,
+          title: foundProduct.title,
+          short_description: foundProduct.title.substring(0, 100),
+          productVariants: foundProduct.price
+            ? [
+                {
+                  id: 1,
+                  customerPrice: foundProduct.price.toString(),
+                  customerSpecialPrice:
+                    foundProduct.originalPrice?.toString() ||
+                    foundProduct.price.toString(),
+                  discount: foundProduct.discount?.toString() || "0",
+                  quantity: 10,
+                  colorId: 1,
+                  stockId: 1,
+                  image: foundProduct.imageUrl || "",
+                  installmentAvailibility: false,
+                  maximumOrder: 5,
+                  partnerMaximumOrder: 5,
+                  partnerMinimumOrder: 1,
+                  partnerPrice: foundProduct.price.toString(),
+                  partnerSpecialPrice:
+                    foundProduct.originalPrice?.toString() ||
+                    foundProduct.price.toString(),
+                  productId: foundProduct.id,
+                  color: {
+                    id: 1,
+                    mainColor: "default",
+                    subColor: "default",
+                    color: "default",
+                  },
+                  stock: { id: 1, name: "موجود" },
+                  productVariantProperties: [],
+                  isInPersonPurchase: false,
+                  payOnSite: false,
+                },
+              ]
+            : [],
+          productImages: foundProduct.imageUrl
+            ? [
+                {
+                  id: 1,
+                  url: foundProduct.imageUrl,
+                  thumbnail: true,
+                  alt: foundProduct.title,
+                  productId: foundProduct.id,
+                  type: "main",
+                },
+              ]
+            : [],
+          productProperties: Object.entries(foundProduct.features || {}).map(
+            ([key, value], index) => ({
+              productId: foundProduct.id,
+              propertyId: index + 1,
+              title: key,
+              description: value,
+              priority: false,
+            })
+          ),
+        };
+        setProduct(productType);
+      }
+      setIsLoading(false);
+    }, 100);
+  }, [productId]);
+
+  return { product, isLoading };
+};
+
+interface CompareProps {
+  initialProductId?: string;
+}
+
+const Compare = ({ initialProductId }: CompareProps) => {
+  const { product: initialProduct, isLoading: loadingInitialProduct } =
+    useProductById(initialProductId);
+
+  const [compareProducts, setCompareProducts] = useState<CompareProduct[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [hoveredProduct, setHoveredProduct] = useState<number | null>(null);
+
+  // Initialize with product from URL or default mock product
+  useEffect(() => {
+    if (initialProduct && !loadingInitialProduct) {
+      // Convert the fetched product to CompareProduct format
+      const compareProduct = convertProductTypeToCompareProduct(initialProduct);
+      setCompareProducts([compareProduct]);
+    } else if (!initialProductId && compareProducts.length === 0) {
+      // No initial product, use mock data
+      setCompareProducts([mockProducts[0] as CompareProduct]);
+    }
+  }, [initialProduct, loadingInitialProduct, initialProductId]);
+
+  const maxProducts = 4;
+  const canAddMore = compareProducts.length < maxProducts;
+
+  const handleAddProduct = (product: CompareProduct) => {
+    if (canAddMore) {
+      setCompareProducts((prev) => [...prev, product]);
+    }
+  };
+
+  const handleRemoveProduct = (productId: number) => {
+    setCompareProducts((prev) =>
+      prev.filter((product) => product.id !== productId)
+    );
+  };
+
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
+
+  // Get all unique feature keys from all products
+  const allFeatureKeys = Array.from(
+    new Set(
+      compareProducts.flatMap((product) => Object.keys(product.features || {}))
+    )
+  );
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Animated Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-200/30 to-purple-200/30 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-green-200/30 to-blue-200/30 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      </div>
+
+      {/* Header */}
+      <div className="relative bg-gradient-to-r from-white via-blue-50/50 to-white backdrop-blur-sm border-b border-blue-100/50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl blur opacity-25 group-hover:opacity-40 transition-opacity"></div>
+                <div className="relative bg-gradient-to-r from-blue-500 to-purple-600 p-3 rounded-xl">
+                  <svg
+                    className="w-8 h-8 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-700 bg-clip-text text-transparent">
+                  مقایسه محصولات
+                </h1>
+                <p className="text-gray-600 mt-1">
+                  بهترین انتخاب را انجام دهید
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
+                <span className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  {compareProducts.length} از {maxProducts} محصول
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="relative max-w-7xl mx-auto px-4 py-8">
+        {/* Products Section */}
+        <div className="relative bg-white/80 backdrop-blur-lg rounded-3xl shadow-xl border border-white/20 overflow-hidden mb-8">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-purple-50/30"></div>
+
+          {/* Section Header */}
+          <div className="relative p-6 border-b border-gray-100/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full animate-pulse"></div>
+                <h2 className="text-xl font-bold text-gray-800">
+                  محصولات در حال مقایسه
+                </h2>
+              </div>
+              {compareProducts.length > 1 && (
+                <button
+                  onClick={() => setCompareProducts([])}
+                  className="group flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-full text-sm font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-300"
+                >
+                  <svg
+                    className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                  پاک کردن همه
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Desktop View */}
+          <div className="relative hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6 p-6">
+            {compareProducts.map((product, index) => (
+              <div
+                key={product.id}
+                className="relative group"
+                onMouseEnter={() => setHoveredProduct(product.id)}
+                onMouseLeave={() => setHoveredProduct(null)}
+              >
+                {/* Remove Button */}
+                {compareProducts.length > 1 && (
+                  <button
+                    onClick={() => handleRemoveProduct(product.id)}
+                    className="absolute -top-3 -right-3 bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm hover:shadow-lg transform hover:scale-110 transition-all duration-300 z-20 opacity-0 group-hover:opacity-100"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                )}
+
+                {/* Product Card */}
+                <div
+                  className={`relative bg-white rounded-2xl p-6 h-full border-2 transition-all duration-500 transform ${
+                    hoveredProduct === product.id
+                      ? "border-blue-300 shadow-xl scale-105 -translate-y-2"
+                      : "border-gray-100 shadow-md hover:shadow-lg"
+                  }`}
+                >
+                  {/* Card Background Gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-transparent via-blue-50/30 to-purple-50/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                  {/* Product Badge */}
+                  <div className="absolute top-3 left-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-3 py-1 rounded-full text-xs font-medium">
+                    #{index + 1}
+                  </div>
+
+                  <div className="relative z-10">
+                    <div className="aspect-square relative mb-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl overflow-hidden group-hover:shadow-inner transition-all duration-300">
+                      <Image
+                        src={product.imageUrl || "/images/placeholder.png"}
+                        alt={product.title}
+                        fill
+                        className="object-contain p-6 transition-transform duration-500 group-hover:scale-110"
+                      />
+                    </div>
+
+                    <h3 className="font-bold text-base mb-4 leading-6 text-gray-800 overflow-hidden line-clamp-3">
+                      {product.title}
+                    </h3>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                          {product.price?.toLocaleString()}
+                        </span>
+                        <span className="text-sm text-gray-500">تومان</span>
+                      </div>
+
+                      {product.originalPrice && product.discount && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-400 line-through">
+                            {product.originalPrice.toLocaleString()}
+                          </span>
+                          <span className="bg-gradient-to-r from-red-500 to-pink-600 text-white text-xs px-2 py-1 rounded-full font-medium">
+                            %{product.discount} تخفیف
+                          </span>
+                        </div>
+                      )}
+
+                      {product.rating && (
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center">
+                            {[...Array(5)].map((_, i) => (
+                              <svg
+                                key={i}
+                                className={`w-4 h-4 ${
+                                  i < Math.floor(product.rating!)
+                                    ? "text-yellow-400"
+                                    : "text-gray-300"
+                                }`}
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                            ))}
+                          </div>
+                          <span className="text-sm font-medium text-gray-600">
+                            {product.rating}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Add Product Box */}
+            {canAddMore && (
+              <div
+                onClick={openModal}
+                className="relative group cursor-pointer h-full min-h-[450px]"
+              >
+                <div className="h-full border-3 border-dashed border-gray-300 rounded-2xl p-8 flex flex-col items-center justify-center transition-all duration-500 group-hover:border-blue-400 group-hover:bg-gradient-to-br group-hover:from-blue-50 group-hover:to-purple-50">
+                  {/* Animated Plus Icon */}
+                  <div className="relative mb-6">
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full blur opacity-0 group-hover:opacity-30 transition-opacity duration-500"></div>
+                    <div className="relative bg-gradient-to-r from-blue-500 to-purple-600 p-4 rounded-full transform group-hover:scale-110 transition-transform duration-300">
+                      <svg
+                        className="w-8 h-8 text-white group-hover:rotate-90 transition-transform duration-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={3}
+                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <h3 className="text-xl font-bold text-gray-700 mb-2 group-hover:text-blue-700 transition-colors">
+                    افزودن محصول
+                  </h3>
+                  <p className="text-gray-500 text-center leading-relaxed group-hover:text-blue-600 transition-colors">
+                    برای مقایسه محصول جدید کلیک کنید و بهترین انتخاب را انجام
+                    دهید
+                  </p>
+
+                  {/* Floating Elements */}
+                  <div className="absolute top-4 right-4 w-2 h-2 bg-blue-400 rounded-full animate-ping"></div>
+                  <div className="absolute bottom-4 left-4 w-3 h-3 bg-purple-400 rounded-full animate-pulse"></div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile View */}
+          <div className="relative md:hidden p-4">
+            <div className="space-y-6">
+              {compareProducts.map((product, index) => (
+                <div
+                  key={product.id}
+                  className="relative bg-white/90 backdrop-blur-sm border-2 border-gray-100 rounded-2xl p-5 shadow-lg"
+                >
+                  {/* Remove Button */}
+                  {compareProducts.length > 1 && (
+                    <button
+                      onClick={() => handleRemoveProduct(product.id)}
+                      className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm hover:shadow-lg transform hover:scale-110 transition-all duration-300 z-10"
+                    >
+                      <svg
+                        className="w-3 h-3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  )}
+
+                  {/* Product Badge */}
+                  <div className="absolute top-3 left-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-2 py-1 rounded-full text-xs font-medium">
+                    #{index + 1}
+                  </div>
+
+                  <div className="flex gap-4 mt-6">
+                    <div className="w-24 h-24 relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden flex-shrink-0">
+                      <Image
+                        src={product.imageUrl || "/images/placeholder.png"}
+                        alt={product.title}
+                        fill
+                        className="object-contain p-3"
+                      />
+                    </div>
+
+                    <div className="flex-1">
+                      <h3 className="font-bold text-base mb-3 leading-5 text-gray-800 overflow-hidden line-clamp-2">
+                        {product.title}
+                      </h3>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                            {product.price?.toLocaleString()}
+                          </span>
+                          <span className="text-xs text-gray-500">تومان</span>
+                        </div>
+
+                        {product.originalPrice && product.discount && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-400 line-through">
+                              {product.originalPrice.toLocaleString()}
+                            </span>
+                            <span className="bg-gradient-to-r from-red-500 to-pink-600 text-white text-xs px-2 py-1 rounded-full font-medium">
+                              %{product.discount} تخفیف
+                            </span>
+                          </div>
+                        )}
+
+                        {product.rating && (
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center">
+                              {[...Array(5)].map((_, i) => (
+                                <svg
+                                  key={i}
+                                  className={`w-3 h-3 ${
+                                    i < Math.floor(product.rating!)
+                                      ? "text-yellow-400"
+                                      : "text-gray-300"
+                                  }`}
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                              ))}
+                            </div>
+                            <span className="text-sm font-medium text-gray-600">
+                              {product.rating}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Add Product Box Mobile */}
+              {canAddMore && (
+                <div
+                  onClick={openModal}
+                  className="relative group cursor-pointer"
+                >
+                  <div className="bg-white/80 backdrop-blur-sm border-3 border-dashed border-gray-300 rounded-2xl p-8 flex flex-col items-center justify-center transition-all duration-500 group-hover:border-blue-400 group-hover:bg-gradient-to-br group-hover:from-blue-50 group-hover:to-purple-50">
+                    {/* Animated Plus Icon */}
+                    <div className="relative mb-4">
+                      <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-3 rounded-full transform group-hover:scale-110 transition-transform duration-300">
+                        <svg
+                          className="w-6 h-6 text-white group-hover:rotate-90 transition-transform duration-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={3}
+                            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+
+                    <h3 className="text-lg font-bold text-gray-700 mb-1 group-hover:text-blue-700 transition-colors">
+                      افزودن محصول
+                    </h3>
+                    <p className="text-gray-500 text-center text-sm leading-relaxed group-hover:text-blue-600 transition-colors">
+                      برای مقایسه محصول جدید کلیک کنید
+                    </p>
+
+                    {/* Floating Elements */}
+                    <div className="absolute top-3 right-3 w-2 h-2 bg-blue-400 rounded-full animate-ping"></div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Features Comparison Table */}
+        {allFeatureKeys.length > 0 && (
+          <div className="relative bg-white/80 backdrop-blur-lg rounded-3xl shadow-xl border border-white/20 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/30 to-purple-50/20"></div>
+
+            {/* Section Header */}
+            <div className="relative p-6 border-b border-gray-100/50">
+              <div className="flex items-center gap-4">
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-3 rounded-xl">
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 via-indigo-800 to-purple-700 bg-clip-text text-transparent">
+                    مشخصات کلی و کلیدی
+                  </h2>
+                  <p className="text-gray-600 mt-1">
+                    مقایسه دقیق ویژگی‌های محصولات
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="relative hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gradient-to-r from-gray-50/80 to-blue-50/50">
+                    <th className="text-right p-5 font-bold text-gray-700 min-w-[200px] border-l border-gray-200/50">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full"></div>
+                        ویژگی
+                      </div>
+                    </th>
+                    {compareProducts.map((product, index) => (
+                      <th
+                        key={product.id}
+                        className="text-center p-5 font-bold text-gray-700 min-w-[250px] border-l border-gray-200/50"
+                      >
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-2 py-1 rounded-full text-xs font-medium">
+                            #{index + 1}
+                          </div>
+                          <span className="text-sm">
+                            {product.title.substring(0, 25)}...
+                          </span>
+                        </div>
+                      </th>
+                    ))}
+                    {canAddMore && (
+                      <th className="text-center p-5 font-medium text-gray-400 min-w-[250px]">
+                        <div className="flex flex-col items-center gap-2 opacity-50">
+                          <div className="w-8 h-8 border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center">
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                              />
+                            </svg>
+                          </div>
+                          <span className="text-xs">محصول جدید</span>
+                        </div>
+                      </th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {allFeatureKeys.map((featureKey, index) => (
+                    <tr
+                      key={featureKey}
+                      className={`transition-colors hover:bg-blue-50/30 ${
+                        index % 2 === 0 ? "bg-white/50" : "bg-gray-50/30"
+                      }`}
+                    >
+                      <td className="p-5 font-bold text-gray-800 border-r-4 border-indigo-500 bg-gradient-to-r from-indigo-50/50 to-purple-50/30">
+                        <div className="flex items-center gap-3">
+                          <div className="w-1 h-8 bg-gradient-to-b from-indigo-500 to-purple-600 rounded-full"></div>
+                          {featureKey}
+                        </div>
+                      </td>
+                      {compareProducts.map((product) => (
+                        <td
+                          key={product.id}
+                          className="p-5 text-center text-gray-700 border-l border-gray-100"
+                        >
+                          <div className="font-medium">
+                            {product.features?.[featureKey] ? (
+                              <span className="bg-gradient-to-r from-gray-700 to-gray-800 bg-clip-text text-transparent">
+                                {product.features[featureKey]}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 italic flex items-center justify-center gap-1">
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M20 12H4"
+                                  />
+                                </svg>
+                                ندارد
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      ))}
+                      {canAddMore && (
+                        <td className="p-5 text-center text-gray-300 border-l border-gray-100">
+                          <div className="flex items-center justify-center">
+                            <div className="w-8 h-1 bg-gray-200 rounded-full"></div>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="relative md:hidden p-6">
+              <div className="space-y-8">
+                {allFeatureKeys.map((featureKey, index) => (
+                  <div
+                    key={featureKey}
+                    className="bg-white/60 backdrop-blur-sm rounded-2xl p-5 border border-gray-100/50 shadow-md"
+                  >
+                    <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+                      <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+                        <span className="text-white text-sm font-bold">
+                          {index + 1}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-gray-800 text-base">
+                        {featureKey}
+                      </h3>
+                    </div>
+                    <div className="space-y-4">
+                      {compareProducts.map((product, productIndex) => (
+                        <div
+                          key={product.id}
+                          className="flex items-start gap-4 p-4 bg-gradient-to-r from-gray-50/80 to-blue-50/30 rounded-xl border border-gray-100/50"
+                        >
+                          <div className="w-14 h-14 relative bg-white rounded-xl overflow-hidden flex-shrink-0 shadow-sm">
+                            <Image
+                              src={
+                                product.imageUrl || "/images/placeholder.png"
+                              }
+                              alt={product.title}
+                              fill
+                              className="object-contain p-2"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-2 py-1 rounded-full text-xs font-medium">
+                                #{productIndex + 1}
+                              </div>
+                              <p className="text-xs text-gray-500 font-medium overflow-hidden line-clamp-1">
+                                {product.title}
+                              </p>
+                            </div>
+                            <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-gray-100/50">
+                              <p className="text-sm font-bold text-gray-800">
+                                {product.features?.[featureKey] ? (
+                                  <span className="bg-gradient-to-r from-gray-700 to-gray-900 bg-clip-text text-transparent">
+                                    {product.features[featureKey]}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400 italic flex items-center gap-1">
+                                    <svg
+                                      className="w-3 h-3"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M20 12H4"
+                                      />
+                                    </svg>
+                                    ندارد
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="relative mt-12 flex flex-col md:flex-row gap-6 justify-center items-center">
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
+            <Button className="relative bg-gradient-to-r from-blue-500 to-purple-600 text-white px-10 py-4 rounded-2xl hover:from-blue-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-xl font-bold text-lg">
+              <div className="flex items-center gap-3">
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                  />
+                </svg>
+                مشاهده و خرید محصولات
+              </div>
+            </Button>
+          </div>
+
+          {compareProducts.length > 1 && (
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-gray-400 to-gray-600 rounded-2xl blur opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
+              <Button
+                onClick={() => setCompareProducts([])}
+                className="relative bg-white border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-2xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-300 transform hover:scale-105 shadow-lg font-semibold"
+              >
+                <div className="flex items-center gap-3">
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                  پاک کردن همه
+                </div>
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Helpful Tips */}
+        <div className="mt-16 bg-gradient-to-r from-blue-50/50 to-purple-50/30 backdrop-blur-sm rounded-3xl border border-white/20 p-8">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full flex items-center justify-center">
+                <svg
+                  className="w-5 h-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-800">
+                نکات مفید برای مقایسه
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+              <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/30">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                    />
+                  </svg>
+                </div>
+                <h4 className="font-bold text-gray-800 mb-2">
+                  مقایسه ویژگی‌ها
+                </h4>
+                <p className="text-sm text-gray-600">
+                  تمام مشخصات فنی را دقیق مقایسه کنید
+                </p>
+              </div>
+
+              <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/30">
+                <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+                    />
+                  </svg>
+                </div>
+                <h4 className="font-bold text-gray-800 mb-2">مقایسه قیمت</h4>
+                <p className="text-sm text-gray-600">
+                  بهترین قیمت را با تخفیف‌ها پیدا کنید
+                </p>
+              </div>
+
+              <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/30">
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                    />
+                  </svg>
+                </div>
+                <h4 className="font-bold text-gray-800 mb-2">بررسی امتیازات</h4>
+                <p className="text-sm text-gray-600">
+                  نظرات و امتیازات کاربران را بررسی کنید
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Add Product Modal */}
+      <AddProductModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        onAddProduct={handleAddProduct}
+        excludeIds={compareProducts.map((p) => p.id)}
+      />
+    </div>
+  );
+};
+
+export default Compare;

@@ -1,0 +1,40 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true
+  },
+  "plugins": ["@typescript-eslint"],
+  "extends": [
+    "eslint:recommended",
+    "next",
+    "next/core-web-vitals",
+    "plugin:@typescript-eslint/recommended",
+    "prettier"
+  ],
+  "rules": {
+    "no-var": 0,
+    "prefer-const": 0,
+    "no-unused-vars": "off",
+    "no-irregular-whitespace": "off",
+    "no-unsafe-optional-chaining": 0,
+    "no-console": "warn",
+    "@typescript-eslint/no-namespace": "off",
+    "@typescript-eslint/no-var-requires": 0,
+    "@typescript-eslint/no-empty-function": 0,
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    "@typescript-eslint/no-explicit-any": "off",
+    "react/no-unescaped-entities": "off",
+    "@next/next/no-img-element": "off",
+    "react/display-name": "off",
+    "react/jsx-curly-brace-presence": [
+      "warn",
+      { "props": "never", "children": "never" }
+    ],
+    "@typescript-eslint/no-unused-vars": "off"
+  },
+  "globals": {
+    "React": true,
+    "JSX": true
+  }
+}
