@@ -13,3 +13,14 @@
 //   const terms = await getTermsServer();
 //   return <Terms initialTerms={terms} />;
 // }
+
+
+
+import React from 'react';
+
+
+function TermsPage() {
+  return  <div> قوانین</div>;
+}
+
+export default TermsPage;

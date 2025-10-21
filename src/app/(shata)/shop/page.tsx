@@ -35,3 +35,12 @@
 //     />
 //   );
 // }
+
+import React from 'react';
+
+
+function ShopPage() {
+  return  <div>فروشگاه </div>;
+}
+
+export default ShopPage;

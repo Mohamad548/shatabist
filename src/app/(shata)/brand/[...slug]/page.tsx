@@ -53,3 +53,13 @@
 //     },
 //   };
 // }
+
+
+import React from 'react';
+
+
+function BrandPage() {
+  return  <div> برند</div>;
+}
+
+export default BrandPage;

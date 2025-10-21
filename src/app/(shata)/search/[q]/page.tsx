@@ -51,3 +51,13 @@
 //     },
 //   };
 // }
+
+
+import React from 'react';
+
+
+function SearchPage() {
+  return  <div>سرچ </div>;
+}
+
+export default SearchPage;

@@ -35,3 +35,13 @@
 // }
 
 // // متادیتای داین
+
+
+import React from 'react';
+
+
+function TagPage() {
+  return  <div>تگ  ها</div>;
+}
+
+export default TagPage;

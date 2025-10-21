@@ -52,3 +52,14 @@
 //     },
 //   };
 // }
+
+
+
+import React from 'react';
+
+
+function CategoryPage() {
+  return  <div>دسته بندی</div>;
+}
+
+export default CategoryPage;

@@ -11,9 +11,10 @@ export default function CheckoutLayout({
 }) {
   return (
     <div className="">
-      <Header />
+      {/* <Header /> */}
       <div className="flex flex-col w-full pb-20 md:pb-0">
-        <CheckoutSidebar />
+        {/* <CheckoutSidebar /> */}
+        صفحه چک اوت 
         {children}
       </div>
     </div>

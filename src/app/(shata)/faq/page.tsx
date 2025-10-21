@@ -14,3 +14,14 @@
 //   const initialData = await getFaqServer(); // داده اولیه از سرور
 //   return <FAQClient initialData={initialData} />;
 // }
+
+
+
+import React from 'react';
+
+
+function FaqPage() {
+  return  <div>دسته بندی</div>;
+}
+
+export default FaqPage;

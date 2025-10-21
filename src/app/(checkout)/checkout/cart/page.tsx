@@ -13,8 +13,8 @@ const Cart = dynamic(
 
 function CartPage() {
   return (
-    <div>
-      <Cart />
+    <div> سبد خرید
+      {/* <Cart /> */}
     </div>
   );
 }
