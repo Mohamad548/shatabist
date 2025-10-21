@@ -24,15 +24,10 @@ export const metadata: Metadata = {
 
   },
 };
-// function InstallmentPlanPage() {
-//   return <InstallmentPlan />;
-// }
-
-// export default InstallmentPlanPage;
-
-
 function InstallmentPlanPage() {
-  return  <div>صفحه  دلخواه</div>;
+  return <InstallmentPlan />;
 }
 
 export default InstallmentPlanPage;
+
+

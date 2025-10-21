@@ -9,15 +9,11 @@ export const metadata: Metadata = {
   keywords: "تماس با ما, آدرس شتا, شماره تماس شتا, ایمیل شتا, پشتیبانی شتا",
 };
 
-// function ContactPage() {
-//   return <Contact />;
-// }
-
-// export default ContactPage;
-
-
 function ContactPage() {
-  return <div>تماس</div>;
+  return <Contact />;
 }
 
 export default ContactPage;
+
+
+// 

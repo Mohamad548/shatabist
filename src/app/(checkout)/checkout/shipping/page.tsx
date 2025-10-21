@@ -6,10 +6,7 @@ export const metadata = {
     "ثبت و مدیریت اطلاعات ارسال سفارش‌ها در فروشگاه اینترنتی شرکت شتا۲۰",
 };
 
-// export default function ShippingPage() {
-//   return <ShippingInfo />;
-// }
-
 export default function ShippingPage() {
-  return <div>صفحه اطلاعات ارسال دلخواه</div>;
+  return <ShippingInfo />;
 }
+

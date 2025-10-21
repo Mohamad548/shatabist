@@ -5,16 +5,11 @@ import React from 'react';
 
 
 
-// function InstallmentTaskPage() {
-//   return <InstallmentTast />;
-// }
-
-// export default InstallmentTaskPage;
-
-
-
 function InstallmentTaskPage() {
-  return <div>صفحه  دلخواه</div>;
+  return <InstallmentTast />;
 }
 
 export default InstallmentTaskPage;
+
+
+

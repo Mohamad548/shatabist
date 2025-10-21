@@ -10,10 +10,10 @@ const MainLayout = ({
 }>) => {
   return (
     <>
-      {/* <Header /> */}
+      <Header />
       <main className="pb-20 md:pb-0">{children}</main>
-      {/* <Toaster position="top-center" reverseOrder={false} />
-      <AccessMenu /> */}
+      <Toaster position="top-center" reverseOrder={false} />
+      <AccessMenu />
       <Footer />
     </>
   );

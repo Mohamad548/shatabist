@@ -5,11 +5,8 @@ export const metadata = {
   description: "صفحه پرداخت و تکمیل خرید در فروشگاه اینترنتی شرکت شتا۲۰",
 };
 
-// export default function PaymentPage() {
-//   return <PaymentInfo />;
-// }
-
-
 export default function PaymentPage() {
-  return <div>صفحه پرداخت دلخواه</div>;
+  return <PaymentInfo />;
 }
+
+

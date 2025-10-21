@@ -6,14 +6,9 @@ export const metadata: Metadata = {
   title: "ورود / ثبت‌نام | شرکت شتا۲۰",
   description: "صفحه ورود / ثبت‌نام کاربران به حساب کاربری  شرکت شتا۲۰",
 };
-// function LoginPage() {
-//   return <Login />;
-// }
-
-// export default LoginPage;
-
 function LoginPage() {
-  return <div>صفحه  دلخواه</div>;
+  return <Login />;
 }
 
 export default LoginPage;
+
